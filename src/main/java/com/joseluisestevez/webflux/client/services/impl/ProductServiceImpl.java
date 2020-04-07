@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -50,6 +52,17 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Mono<Void> delete(String id) {
         return webClient.delete().uri("/{id}", Collections.singletonMap("id", id)).exchange().then();
+    }
+
+    @Override
+    public Mono<ProductDto> upload(FilePart file, String id) {
+        MultipartBodyBuilder parts = new MultipartBodyBuilder();
+        parts.asyncPart("file", file.content(), org.springframework.core.io.buffer.DataBuffer.class).headers(h -> {
+            h.setContentDispositionFormData("file", file.filename());
+        });
+
+        return webClient.post().uri("/uploads/{id}", Collections.singletonMap("id", id)).contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(parts.build()).retrieve().bodyToMono(ProductDto.class);
     }
 
 }
