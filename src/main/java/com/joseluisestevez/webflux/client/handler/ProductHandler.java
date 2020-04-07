@@ -4,8 +4,10 @@ import java.net.URI;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
@@ -39,7 +41,14 @@ public class ProductHandler {
                 p.setCreateAt(new Date());
             }
             return productService.save(p);
-        }).flatMap(p -> ServerResponse.created(URI.create("/api/client/".concat(p.getId()))).contentType(MediaType.APPLICATION_JSON).bodyValue(p));
+        }).flatMap(p -> ServerResponse.created(URI.create("/api/client/".concat(p.getId()))).contentType(MediaType.APPLICATION_JSON).bodyValue(p))
+                .onErrorResume(error -> {
+                    WebClientResponseException errorResponse = (WebClientResponseException) error;
+                    if (errorResponse.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                        return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(errorResponse.getResponseBodyAsString());
+                    }
+                    return Mono.error(errorResponse);
+                });
     }
 
     public Mono<ServerResponse> edit(ServerRequest request) {
