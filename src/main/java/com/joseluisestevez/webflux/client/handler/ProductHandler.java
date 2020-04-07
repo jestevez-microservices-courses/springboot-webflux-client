@@ -1,5 +1,8 @@
 package com.joseluisestevez.webflux.client.handler;
 
+import java.net.URI;
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -27,5 +30,28 @@ public class ProductHandler {
         String id = request.pathVariable("id");
         return productService.findById(id).flatMap(p -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(p))
                 .switchIfEmpty(ServerResponse.notFound().build());
+    }
+
+    public Mono<ServerResponse> create(ServerRequest request) {
+        Mono<ProductDto> product = request.bodyToMono(ProductDto.class);
+        return product.flatMap(p -> {
+            if (p.getCreateAt() == null) {
+                p.setCreateAt(new Date());
+            }
+            return productService.save(p);
+        }).flatMap(p -> ServerResponse.created(URI.create("/api/client/".concat(p.getId()))).contentType(MediaType.APPLICATION_JSON).bodyValue(p));
+    }
+
+    public Mono<ServerResponse> edit(ServerRequest request) {
+        Mono<ProductDto> product = request.bodyToMono(ProductDto.class);
+        String id = request.pathVariable("id");
+        return product.flatMap(p -> ServerResponse.created(URI.create("/api/client/".concat(id))).contentType(MediaType.APPLICATION_JSON)
+                .body(productService.update(p, id), ProductDto.class));
+
+    }
+
+    public Mono<ServerResponse> delete(ServerRequest request) {
+        String id = request.pathVariable("id");
+        return productService.delete(id).then(ServerResponse.noContent().build());
     }
 }

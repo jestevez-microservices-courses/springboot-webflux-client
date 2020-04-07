@@ -13,7 +13,10 @@ import com.joseluisestevez.webflux.client.handler.ProductHandler;
 public class RouterConfig {
     @Bean
     public RouterFunction<ServerResponse> routes(ProductHandler productHandler) {
-        return RouterFunctions.route(RequestPredicates.GET("/api/client"), productHandler::list).andRoute(RequestPredicates.GET("/api/client/{id}"),
-                productHandler::view);
+        return RouterFunctions.route(RequestPredicates.GET("/api/client"), productHandler::list)
+                .andRoute(RequestPredicates.GET("/api/client/{id}"), productHandler::view)
+                .andRoute(RequestPredicates.POST("/api/client"), productHandler::create)
+                .andRoute(RequestPredicates.PUT("/api/client/{id}"), productHandler::edit)
+                .andRoute(RequestPredicates.DELETE("/api/client/{id}"), productHandler::delete);
     }
 }
