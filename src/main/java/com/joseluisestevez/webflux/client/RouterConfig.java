@@ -11,13 +11,15 @@ import com.joseluisestevez.webflux.client.handler.ProductHandler;
 
 @Configuration
 public class RouterConfig {
+    public static final String ROUTE_PREFIX = "/api/client";
+
     @Bean
     public RouterFunction<ServerResponse> routes(ProductHandler productHandler) {
-        return RouterFunctions.route(RequestPredicates.GET("/api/client"), productHandler::list)
-                .andRoute(RequestPredicates.GET("/api/client/{id}"), productHandler::view)
-                .andRoute(RequestPredicates.POST("/api/client"), productHandler::create)
-                .andRoute(RequestPredicates.PUT("/api/client/{id}"), productHandler::edit)
-                .andRoute(RequestPredicates.DELETE("/api/client/{id}"), productHandler::delete)
-                .andRoute(RequestPredicates.POST("/api/client/upload/{id}"), productHandler::upload);
+        return RouterFunctions.route(RequestPredicates.GET(ROUTE_PREFIX), productHandler::list)
+                .andRoute(RequestPredicates.GET(ROUTE_PREFIX.concat("/{id}")), productHandler::view)
+                .andRoute(RequestPredicates.POST(ROUTE_PREFIX), productHandler::create)
+                .andRoute(RequestPredicates.PUT(ROUTE_PREFIX.concat("/{id}")), productHandler::edit)
+                .andRoute(RequestPredicates.DELETE(ROUTE_PREFIX.concat("/{id}")), productHandler::delete)
+                .andRoute(RequestPredicates.POST(ROUTE_PREFIX.concat("/upload/{id}")), productHandler::upload);
     }
 }
