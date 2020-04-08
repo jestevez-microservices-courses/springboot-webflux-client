@@ -51,7 +51,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Mono<Void> delete(String id) {
-        return webClient.delete().uri("/{id}", Collections.singletonMap("id", id)).exchange().then();
+        return webClient.delete().uri("/{id}", Collections.singletonMap("id", id)).retrieve().bodyToMono(Void.class);
     }
 
     @Override

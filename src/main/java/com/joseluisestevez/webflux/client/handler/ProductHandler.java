@@ -2,6 +2,8 @@ package com.joseluisestevez.webflux.client.handler;
 
 import java.net.URI;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,7 +34,17 @@ public class ProductHandler {
     public Mono<ServerResponse> view(ServerRequest request) {
         String id = request.pathVariable("id");
         return productService.findById(id).flatMap(p -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(p))
-                .switchIfEmpty(ServerResponse.notFound().build());
+                .switchIfEmpty(ServerResponse.notFound().build()).onErrorResume(error -> {
+                    WebClientResponseException errorResponse = (WebClientResponseException) error;
+                    if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
+                        Map<String, Object> body = new HashMap<>();
+                        body.put("error", "Product not found: ".concat(errorResponse.getMessage()));
+                        body.put("timestamp", new Date());
+                        body.put("status", errorResponse.getStatusCode().value());
+                        return ServerResponse.status(HttpStatus.NOT_FOUND).bodyValue(body);
+                    }
+                    return Mono.error(errorResponse);
+                });
     }
 
     public Mono<ServerResponse> create(ServerRequest request) {
@@ -55,20 +67,40 @@ public class ProductHandler {
     public Mono<ServerResponse> edit(ServerRequest request) {
         Mono<ProductDto> product = request.bodyToMono(ProductDto.class);
         String id = request.pathVariable("id");
-        return product.flatMap(p -> ServerResponse.created(URI.create("/api/client/".concat(id))).contentType(MediaType.APPLICATION_JSON)
-                .body(productService.update(p, id), ProductDto.class));
+        return product.flatMap(p -> productService.update(p, id)).flatMap(
+                p -> ServerResponse.created(URI.create("/api/client/".concat(p.getId()))).contentType(MediaType.APPLICATION_JSON).bodyValue(p))
+                .onErrorResume(error -> {
+                    WebClientResponseException errorResponse = (WebClientResponseException) error;
+                    if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
+                        return ServerResponse.notFound().build();
+                    }
+                    return Mono.error(errorResponse);
+                });
 
     }
 
     public Mono<ServerResponse> delete(ServerRequest request) {
         String id = request.pathVariable("id");
-        return productService.delete(id).then(ServerResponse.noContent().build());
+        return productService.delete(id).then(ServerResponse.noContent().build()).onErrorResume(error -> {
+            WebClientResponseException errorResponse = (WebClientResponseException) error;
+            if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
+                return ServerResponse.notFound().build();
+            }
+            return Mono.error(errorResponse);
+        });
     }
 
     public Mono<ServerResponse> upload(ServerRequest request) {
         String id = request.pathVariable("id");
         return request.multipartData().map(multipart -> multipart.toSingleValueMap().get("file")).cast(FilePart.class)
                 .flatMap(file -> productService.upload(file, id))
-                .flatMap(p -> ServerResponse.created(URI.create("/api/client/".concat(id))).contentType(MediaType.APPLICATION_JSON).bodyValue(p));
+                .flatMap(p -> ServerResponse.created(URI.create("/api/client/".concat(id))).contentType(MediaType.APPLICATION_JSON).bodyValue(p))
+                .onErrorResume(error -> {
+                    WebClientResponseException errorResponse = (WebClientResponseException) error;
+                    if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
+                        return ServerResponse.notFound().build();
+                    }
+                    return Mono.error(errorResponse);
+                });
     }
 }
