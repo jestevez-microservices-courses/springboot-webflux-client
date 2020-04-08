@@ -20,38 +20,38 @@ import reactor.core.publisher.Mono;
 @Service
 public class ProductServiceImpl implements ProductService {
     @Autowired
-    private WebClient webClient;
+    private WebClient.Builder webClient;
 
     @Override
     public Flux<ProductDto> findAll() {
-        return webClient.get().accept(MediaType.APPLICATION_JSON).exchange().flatMapMany(response -> response.bodyToFlux(ProductDto.class));
+        return webClient.build().get().accept(MediaType.APPLICATION_JSON).exchange().flatMapMany(response -> response.bodyToFlux(ProductDto.class));
     }
 
     @Override
     public Mono<ProductDto> findById(String id) {
         Map<String, String> params = new HashMap<>();
         params.put("id", id);
-        return webClient.get().uri("/{id}", params).accept(MediaType.APPLICATION_JSON)
+        return webClient.build().get().uri("/{id}", params).accept(MediaType.APPLICATION_JSON)
                 // .retrieve().bodyToMono(ProductDto.class) // otra forma
                 .exchange().flatMap(response -> response.bodyToMono(ProductDto.class));
     }
 
     @Override
     public Mono<ProductDto> save(ProductDto productDto) {
-        return webClient.post().accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON).bodyValue(productDto)
+        return webClient.build().post().accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON).bodyValue(productDto)
                 // .body(BodyInserters.fromValue(productDto)) // otra forma
                 .retrieve().bodyToMono(ProductDto.class);
     }
 
     @Override
     public Mono<ProductDto> update(ProductDto productDto, String id) {
-        return webClient.put().uri("/{id}", Collections.singletonMap("id", id)).accept(MediaType.APPLICATION_JSON)
+        return webClient.build().put().uri("/{id}", Collections.singletonMap("id", id)).accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(productDto).retrieve().bodyToMono(ProductDto.class);
     }
 
     @Override
     public Mono<Void> delete(String id) {
-        return webClient.delete().uri("/{id}", Collections.singletonMap("id", id)).retrieve().bodyToMono(Void.class);
+        return webClient.build().delete().uri("/{id}", Collections.singletonMap("id", id)).retrieve().bodyToMono(Void.class);
     }
 
     @Override
@@ -61,7 +61,7 @@ public class ProductServiceImpl implements ProductService {
             h.setContentDispositionFormData("file", file.filename());
         });
 
-        return webClient.post().uri("/uploads/{id}", Collections.singletonMap("id", id)).contentType(MediaType.MULTIPART_FORM_DATA)
+        return webClient.build().post().uri("/uploads/{id}", Collections.singletonMap("id", id)).contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(parts.build()).retrieve().bodyToMono(ProductDto.class);
     }
 
